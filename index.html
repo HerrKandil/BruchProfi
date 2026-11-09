@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bruch-Profi">
+<title>Bruch-Profi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Lexend:wght@400;500;700&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Arbeitsheft; Bilder (Pizza, Streifen) über der Rechnung, Bruch-Tastatur unten */
+:root{
+  --bg:#f2f3ee; --surface:#ffffff; --fg:#1f2421; --muted:#5d665f; --line:#d8ddd5;
+  --accent:#1f7a5c; --accent-soft:#dcefe6;
+  --c1:#e2762b; --c1-soft:#fbe3d0; --c2:#3a74c9; --c2-soft:#dbe6f7; --c3:#7a4bb5; --empty:#ffffff;
+  --good:#22895a; --good-soft:#d8f0e4; --bad:#c2333b; --bad-soft:#f8dcdd; --warn:#a86a00; --warn-soft:#fbecc9; --gold:#c99a12;
+  --display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Lexend", "Segoe UI", system-ui, sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141815; --surface:#1e2420; --fg:#e8ede9; --muted:#9ea9a1; --line:#36403a;
+  --accent:#4cc39a; --accent-soft:#1d3329; --c1:#f08a45; --c1-soft:#3d2a1c; --c2:#6b9ee8; --c2-soft:#1d2a40; --c3:#a77ee0; --empty:#2a312c;
+  --good:#4cc48a; --good-soft:#1c3529; --bad:#ef6b72; --bad-soft:#3d2125; --warn:#f0b543; --warn-soft:#3a2f17; --gold:#e8bd3c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141815; --surface:#1e2420; --fg:#e8ede9; --muted:#9ea9a1; --line:#36403a;
+  --accent:#4cc39a; --accent-soft:#1d3329; --c1:#f08a45; --c1-soft:#3d2a1c; --c2:#6b9ee8; --c2-soft:#1d2a40; --c3:#a77ee0; --empty:#2a312c;
+  --good:#4cc48a; --good-soft:#1c3529; --bad:#ef6b72; --bad-soft:#3d2125; --warn:#f0b543; --warn-soft:#3a2f17; --gold:#e8bd3c; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+[hidden]{display:none!important}
+.app{max-width:600px;margin:0 auto;padding-block:20px 32px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:2rem;font-weight:800;letter-spacing:-.01em}
+h1 span{color:var(--c1)}
+h2{font-size:1.5rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0}
+.sub{color:var(--muted);margin-top:4px}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.note{font-size:.85rem;color:var(--muted)}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{font:700 1.1rem var(--body);padding:14px;border-radius:12px;border:0;background:var(--accent);color:#fff;cursor:pointer;width:100%}
+.btn.ghost{background:transparent;color:var(--fg);border:2px solid var(--line)}
+.btn.small{width:auto;padding:8px 14px;font-size:.95rem}
+.name{font:500 1.05rem var(--body);padding:12px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);width:100%}
+
+/* Bruch-Schreibweise */
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em;line-height:1.05;font-variant-numeric:tabular-nums}
+.fr>span{padding:0 .18em;min-width:1ch;text-align:center}
+.fr>span:first-child{border-bottom:.09em solid currentColor;padding-bottom:.06em}
+.fr>span:last-child{padding-top:.06em}
+.mx{font-family:var(--display);font-weight:700;display:inline-flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:.15em .3em}
+.slot{display:inline-block;min-width:1.7em;min-height:1.2em;border:3px solid var(--line);border-radius:8px;color:var(--accent);background:var(--bg);cursor:pointer;padding:.05em .15em}
+.fr>span.slot:first-child{border-bottom:3px solid var(--line);margin-bottom:.12em}
+.fr.in{gap:0}
+.fr.in::after{content:"";order:1;width:100%;border-top:.09em solid var(--fg);margin:.06em 0}
+.fr.in .slot.d{order:2}
+.slot.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* Tabs */
+.tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px}
+.tab{border:0;border-radius:10px;background:transparent;color:var(--muted);padding:10px 4px;cursor:pointer;font:500 .85rem var(--body);display:flex;flex-direction:column;align-items:center;gap:2px}
+.tab b{font:800 1.05rem var(--display);color:var(--fg)}
+.tab[aria-pressed="true"]{background:var(--accent);color:#fff}
+.tab[aria-pressed="true"] b{color:#fff}
+
+/* Lernpfad */
+.path{display:flex;flex-direction:column;gap:8px}
+.step{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left;width:100%}
+.step .dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:800 1rem var(--display);flex:none;background:var(--accent-soft);color:var(--accent)}
+.step.done .dot{background:var(--good);color:#fff}
+.step.practice .dot{background:var(--c1-soft);color:var(--c1)}
+.step.practice.done .dot{background:var(--good);color:#fff}
+.step .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.step .txt small{color:var(--muted)}
+.step .go{color:var(--muted);font-size:1.2rem}
+.step.next{border:2px solid var(--accent)}
+
+/* Üben */
+.areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.area{padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:left}
+.area b{font:700 1rem var(--display)}
+.area .ex{font-family:var(--display);font-weight:700;font-size:1.05rem;min-height:2.4em;display:flex;align-items:center}
+.area small{color:var(--muted);font-size:.78rem}
+.area[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.stages{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chip{text-align:left;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.chip b{font:700 1rem var(--display)}
+.chip small{color:var(--muted);font-size:.8rem}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--gold)}
+.chip.ok .bar i{background:var(--good)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{text-align:left;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.mode b{font-family:var(--display);font-size:1.05rem}
+.mode small{color:var(--muted)}
+.mode[aria-pressed="true"]{border-color:var(--c1);background:var(--c1-soft)}
+
+/* Bilder */
+.pic{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.pic svg{max-width:100%;height:auto}
+.pic .cap{font-size:.85rem;color:var(--muted)}
+.pics{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;align-items:center}
+svg .p0{fill:var(--empty)} svg .p1{fill:var(--c1)} svg .p2{fill:var(--c2)} svg .p3{fill:var(--c3)}
+svg .l1{fill:var(--c1-soft)} svg .l2{fill:var(--c2-soft)}
+svg .pc{stroke:var(--fg);stroke-width:2}
+svg .x{stroke:var(--fg);stroke-width:3;stroke-linecap:round}
+svg.tap .pc{cursor:pointer}
+svg text{font-family:var(--display);font-weight:700;fill:var(--fg)}
+
+/* Kapitel */
+.chapter{display:flex;flex-direction:column;gap:14px}
+.chapter p{max-width:62ch}
+.rule{border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.rule .mx{font-size:1.4rem;justify-content:flex-start}
+.tip{background:var(--warn-soft);border-radius:12px;padding:10px 12px;font-size:.95rem}
+.example{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface);align-items:flex-start}
+.example .mx{font-size:1.35rem;justify-content:flex-start}
+.two{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center}
+.two .fr{font:800 1.6rem var(--display)}
+
+/* Spiel */
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.hud .big{font:800 1.4rem var(--display)}
+.streak{font-weight:700;color:var(--c1)}
+.track{height:14px;border-radius:7px;background:var(--c1-soft);overflow:hidden}
+.track i{display:block;height:100%;background:var(--c1)}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:16px 12px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;transition:background .15s,border-color .15s}
+.card.ok{background:var(--good-soft);border-color:var(--good)}
+.card.no{border-color:var(--bad)}
+.card.almost{border-color:var(--warn)}
+.prompt{color:var(--muted);font-weight:500}
+.task{font-size:clamp(1.8rem,8vw,2.6rem)}
+.fb{min-height:1.4em;font-weight:700}
+.card.ok .fb{color:var(--good)} .card.no .fb{color:var(--bad)} .card.almost .fb{color:var(--warn)}
+.sol{background:var(--bg);border-radius:12px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:8px;width:100%}
+.sol .mx{font-size:1.3rem;justify-content:flex-start}
+.sol .why{font-size:.9rem;color:var(--muted)}
+.hintbtn{border:2px solid var(--line);background:transparent;border-radius:999px;padding:6px 14px;cursor:pointer;font:500 .95rem var(--body)}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;-webkit-user-select:none;user-select:none}
+.pad button{font:700 1.5rem var(--display);padding:12px 0;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;touch-action:manipulation}
+.pad button:active{transform:scale(.97)}
+.pad .sw{background:var(--accent-soft);color:var(--accent);font-size:.95rem}
+.pad .del{font-size:1.1rem;color:var(--muted)}
+.pad .ok{background:var(--good);color:#fff;border-color:var(--good);font-size:1.1rem;grid-column:1/-1}
+.count{color:var(--c1)}
+.pop{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);font:800 1.5rem var(--display);color:var(--gold);pointer-events:none;animation:pop .8s forwards}
+@keyframes pop{from{opacity:1;transform:translate(-50%,-50%)}to{opacity:0;transform:translate(-50%,-140%)}}
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--good);color:#fff;font:800 1.05rem var(--display);padding:10px 18px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:5;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}}
+
+/* Ergebnis / Nachweis */
+.cert{border:3px double var(--gold);border-radius:14px;padding:18px 16px;text-align:center;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.cert h2{color:var(--gold)}
+.cert .who{font:800 1.5rem var(--display)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats div{display:flex;flex-direction:column;gap:2px}
+.stats b{font:800 1.5rem var(--display);font-variant-numeric:tabular-nums}
+.stars{font-size:2rem;letter-spacing:4px;color:var(--gold)}
+.list{display:flex;flex-direction:column;gap:6px;text-align:left}
+.list div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.95rem}
+.list div:last-child{border-bottom:0}
+.list .yes{color:var(--good);font-weight:700}
+.list .no{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+/* ================= Grundlagen ================= */
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const store = {
+  get(){ try{ return JSON.parse(localStorage.getItem('bruchprofi')||'{}') }catch(e){ return {} } },
+  set(v){ try{ localStorage.setItem('bruchprofi', JSON.stringify(v)) }catch(e){} }
+};
+let save = Object.assign({name:'', tab:'learn', done:{}, cnt:{}, best:{}, pts:0, solved:0, area:'erkennen', stage:{}, mode:'train'}, store.get());
+const persist = () => store.set(save);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const gcd = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b] } return a };
+const lcm = (a,b) => a/gcd(a,b)*b;
+const SICHER = 10;
+const F = (n,d) => `<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const M = (...parts) => `<span class="mx">${parts.join(' ')}</span>`;
+const NAMES = {2:'Halbe',3:'Drittel',4:'Viertel',5:'Fünftel',6:'Sechstel',7:'Siebtel',8:'Achtel',9:'Neuntel',10:'Zehntel',12:'Zwölftel'};
+
+/* ================= Bilder ================= */
+// parts: Liste von Klassen pro Stück ('p0' leer, 'p1' orange, 'p2' blau, 'p3' lila)
+function parts(d, ...groups){ const a=[]; groups.forEach(([n,c])=>{ for(let i=0;i<n;i++) a.push(c) }); while(a.length<d) a.push('p0'); return a.slice(0,d) }
+function barSVG(list, opt={}){
+  const d=list.length, W=opt.w||300, H=46, w=(W-4)/d;
+  let s=`<svg viewBox="0 0 ${W} ${H+4}" width="${W}" class="${opt.tap?'tap':''}" role="img" aria-label="Streifen in ${d} Teile geteilt">`;
+  list.forEach((c,i)=>{
+    s+=`<rect class="pc ${c}" data-i="${i}" x="${2+i*w}" y="2" width="${w}" height="${H}"/>`;
+    if(opt.cross && opt.cross.includes(i)) s+=`<line class="x" x1="${2+i*w+w*.25}" y1="12" x2="${2+i*w+w*.75}" y2="${H-8}"/><line class="x" x1="${2+i*w+w*.75}" y1="12" x2="${2+i*w+w*.25}" y2="${H-8}"/>`;
+  });
+  return s+'</svg>';
+}
+function pieSVG(list, opt={}){
+  const d=list.length, R=opt.r||62, C=R+3, S=2*C;
+  let s=`<svg viewBox="0 0 ${S} ${S}" width="${S}" class="${opt.tap?'tap':''}" role="img" aria-label="Kreis in ${d} Teile geteilt">`;
+  if(d===1) return s+`<circle class="pc ${list[0]}" data-i="0" cx="${C}" cy="${C}" r="${R}"/></svg>`;
+  list.forEach((c,i)=>{
+    const a0=(-90+360*i/d)*Math.PI/180, a1=(-90+360*(i+1)/d)*Math.PI/180;
+    const x0=C+R*Math.cos(a0), y0=C+R*Math.sin(a0), x1=C+R*Math.cos(a1), y1=C+R*Math.sin(a1);
+    s+=`<path class="pc ${c}" data-i="${i}" d="M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${360/d>180?1:0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z"/>`;
+  });
+  return s+'</svg>';
+}
+// Rechteck für Bruch · Bruch: Spalten = erster Bruch, Zeilen = zweiter Bruch
+function gridSVG(n1,d1,n2,d2){
+  const W=240, H=180, cw=W/d1, rh=H/d2;
+  let s=`<svg viewBox="0 0 ${W+4} ${H+4}" width="${W+4}" role="img" aria-label="Rechteck ${d1} mal ${d2} Felder">`;
+  for(let r=0;r<d2;r++) for(let c=0;c<d1;c++){
+    const inC=c<n1, inR=r<n2, cls = inC&&inR ? 'p3' : inC ? 'l1' : inR ? 'l2' : 'p0';
+    s+=`<rect class="pc ${cls}" x="${2+c*cw}" y="${2+r*rh}" width="${cw}" height="${rh}"/>`;
+  }
+  return s+'</svg>';
+}
+const shape = (kind, list, opt) => kind==='pie' ? pieSVG(list,opt) : barSVG(list,opt);
+const picBox = (svg, cap) => `<div class="pic">${svg}${cap?`<span class="cap">${cap}</span>`:''}</div>`;
+
+/* ================= Aufgaben ================= */
+// Jede Aufgabe: mode 'frac' (Zähler und Nenner eintippen), 'num' (nur Zähler) oder 'color' (ausmalen)
+const IN = '{IN}';
+const INnum = d => `<span class="fr">${IN}<span>${d}</span></span>`;
+const T = {
+  read(n,d,sh){ return {mode:'frac', target:[n,d], need:'equiv', prompt:'Welcher Bruch ist gefärbt?',
+    pic: picBox(shape(sh, parts(d,[n,'p1']))), q: M(IN),
+    hint:`Zähle zuerst alle Teile. Das ist die Zahl unten (Nenner). Dann zähle die gefärbten Teile. Das ist die Zahl oben (Zähler).`,
+    help:()=>[{mx:M(F(n,d)), why:`Es gibt ${d} Teile, also steht unten ${d}. ${n} davon sind gefärbt, also steht oben ${n}.`}] } },
+  color(n,d,sh){ return {mode:'color', n, d, sh, prompt:`Male ${F(n,d)} aus. Tippe dafür auf die Teile.`, q:'',
+    hint:`Der Nenner ${d} sagt: Es gibt ${d} Teile. Der Zähler ${n} sagt: Male ${n} Teile aus.`,
+    help:()=>[{pic:picBox(shape(sh, parts(d,[n,'p1']))), why:`Male genau ${n} von ${d} Teilen aus.`}] } },
+  expNum(n,d,k,pic){ return {mode:'num', target:[n*k,d*k], num:n*k, prompt:`Erweitere. Welche Zahl gehört oben hin?`,
+    pic: pic ? `<div class="pics">${picBox(barSVG(parts(d,[n,'p1'])), M(F(n,d)))}${picBox(barSVG(parts(d*k)), `Gleich lang, aber ${d*k} Teile`)}</div>` : '',
+    q: M(F(n,d),'=',INnum(d*k)),
+    hint:`Von ${d} auf ${d*k}: Der Nenner wurde mit ${k} malgenommen. Nimm den Zähler auch mit ${k} mal.`,
+    help:()=>[{pic:`<div class="pics">${picBox(barSVG(parts(d,[n,'p1'])))}${picBox(barSVG(parts(d*k,[n*k,'p1'])))}</div>`},
+              {mx:M(F(n,d),'=',F(`${n} · ${k}`,`${d} · ${k}`),'=',F(n*k,d*k)), why:`Oben und unten mit ${k} malnehmen.`}] } },
+  expFree(n,d,k){ return {mode:'frac', target:[n*k,d*k], need:'exact', prompt:`Erweitere mit ${k}:`, pic:'',
+    q: M(F(n,d),'=',IN), exactMsg:`Der Bruch ist gleich groß, aber du solltest mit ${k} erweitern.`,
+    hint:`Nimm oben und unten mit ${k} mal.`,
+    help:()=>[{mx:M(F(n,d),'=',F(`${n} · ${k}`,`${d} · ${k}`),'=',F(n*k,d*k)), why:`Zähler mal ${k}, Nenner mal ${k}.`}] } },
+  redNum(a,b,k,pic){ return {mode:'num', target:[a,b], num:a, prompt:'Kürze. Welche Zahl gehört oben hin?',
+    pic: pic ? `<div class="pics">${picBox(barSVG(parts(b*k,[a*k,'p1'])), M(F(a*k,b*k)))}${picBox(barSVG(parts(b)), `Gleich lang, aber nur ${b} Teile`)}</div>` : '',
+    q: M(F(a*k,b*k),'=',INnum(b)),
+    hint:`Von ${b*k} auf ${b}: Der Nenner wurde durch ${k} geteilt. Teile den Zähler auch durch ${k}.`,
+    help:()=>[{pic:`<div class="pics">${picBox(barSVG(parts(b*k,[a*k,'p1'])))}${picBox(barSVG(parts(b,[a,'p1'])))}</div>`},
+              {mx:M(F(a*k,b*k),'=',F(`${a*k} : ${k}`,`${b*k} : ${k}`),'=',F(a,b)), why:`Oben und unten durch ${k} teilen.`}] } },
+  redFull(a,b,k){ const n=a*k, d=b*k; return {mode:'frac', target:[a,b], need:'reduced', prompt:'Kürze so weit wie möglich:', pic:'',
+    q: M(F(n,d),'=',IN),
+    hint:`Suche die größte Zahl, durch die du ${n} und ${d} teilen kannst.`,
+    help:()=>[{mx:M(F(n,d),'=',F(`${n} : ${k}`,`${d} : ${k}`),'=',F(a,b)), why:`${n} und ${d} kann man beide durch ${k} teilen.`}] } },
+  add(a,d1,b,d2,pic){ return addSub(a,d1,b,d2,pic,1) },
+  sub(a,d1,b,d2,pic){ return addSub(a,d1,b,d2,pic,-1) },
+  mulInt(k,n,d,pic){ return {mode:'frac', target:[k*n,d], need:'equiv', prompt:'Rechne aus:',
+    pic: pic ? `<div class="pics">${Array.from({length:k},()=>picBox(barSVG(parts(d,[n,'p1']),{w:200}))).join('')}</div><span class="cap note">${k}-mal ${F(n,d)}: Zähle alle orangen Teile.</span>` : '',
+    q: M(k,'·',F(n,d),'=',IN),
+    hint:`Nimm nur den Zähler mal ${k}. Der Nenner bleibt ${d}.`,
+    help:()=>[{mx:M(k,'·',F(n,d),'=',F(`${k} · ${n}`,d),'=',F(k*n,d)), why:`Zähler mal ${k}, der Nenner bleibt gleich.`}] } },
+  mulFrac(n1,d1,n2,d2,pic){ return {mode:'frac', target:[n1*n2,d1*d2], need:'equiv', prompt:'Rechne aus:',
+    pic: pic ? picBox(gridSVG(n1,d1,n2,d2), `Lila Felder: ${F(n1,d1)} von ${F(n2,d2)}`) : '',
+    q: M(F(n1,d1),'·',F(n2,d2),'=',IN),
+    hint:'Oben mal oben, unten mal unten.',
+    help:()=>[{pic:picBox(gridSVG(n1,d1,n2,d2), `${n1*n2} lila Felder von ${d1*d2} Feldern`)},
+              {mx:M(F(n1,d1),'·',F(n2,d2),'=',F(`${n1} · ${n2}`,`${d1} · ${d2}`),'=',F(n1*n2,d1*d2)), why:'Zähler mal Zähler, Nenner mal Nenner.'}] } },
+  divInt(n,d,k,pic){ const groups=[]; for(let g=0;g<k;g++) groups.push([n/k, g%2?'p2':'p1']);
+    return {mode:'frac', target:[n/k,d], need:'equiv', prompt:'Rechne aus:',
+    pic: pic ? picBox(barSVG(parts(d,...groups)), `${n} Teile werden auf ${k} verteilt`) : '',
+    q: M(F(n,d),':',k,'=',IN),
+    hint:`Teile nur den Zähler durch ${k}. Der Nenner bleibt ${d}.`,
+    help:()=>[{pic:picBox(barSVG(parts(d,...groups)))},{mx:M(F(n,d),':',k,'=',F(`${n} : ${k}`,d),'=',F(n/k,d)), why:`Jeder bekommt ${n/k} von ${d} Teilen.`}] } },
+  divFrac(n1,d1,n2,d2){ return {mode:'frac', target:[n1*d2,d1*n2], need:'equiv', prompt:'Rechne aus:', pic:'',
+    q: M(F(n1,d1),':',F(n2,d2),'=',IN),
+    hint:`Dreh den zweiten Bruch um (${F(d2,n2)}) und nimm mal.`,
+    help:()=>[{mx:M(F(n1,d1),':',F(n2,d2),'=',F(n1,d1),'·',F(d2,n2)), why:'Zweiten Bruch umdrehen (Kehrwert) und malnehmen.'},
+              {mx:M('=',F(`${n1} · ${d2}`,`${d1} · ${n2}`),'=',F(n1*d2,d1*n2)), why:'Oben mal oben, unten mal unten.'}] } }
+};
+function addSub(a,d1,b,d2,pic,sg){
+  const D=lcm(d1,d2), A=a*D/d1, B=b*D/d2, R=A+sg*B, op = sg>0?'+':'−';
+  const same = d1===d2;
+  const showPic = () => sg>0
+    ? (same ? `<div class="pics">${picBox(barSVG(parts(d1,[a,'p1'])),M(F(a,d1)))}${picBox(barSVG(parts(d2,[b,'p2'])),M(F(b,d2)))}</div>`
+            : `<div class="pics">${picBox(barSVG(parts(d1,[a,'p1'])),M(F(a,d1)))}${picBox(barSVG(parts(d2,[b,'p2'])),M(F(b,d2)))}</div>`)
+    : picBox(barSVG(parts(d1,[a,'p1']),{cross:Array.from({length:B},(_,i)=>A-1-i).filter(i=>same)}), same?`${a} Teile, ${b} davon werden weggenommen`:M(F(a,d1)));
+  const help = () => {
+    const out=[];
+    if(!same) out.push({mx:M(F(a,d1),op,F(b,d2),'=',F(A,D),op,F(B,D)), why:`Erst gleiche Nenner machen: auf ${D} erweitern.`});
+    out.push({pic: sg>0 ? picBox(barSVG(parts(D,[A,'p1'],[B,'p2'])), `${A} + ${B} = ${R} Teile`) : picBox(barSVG(parts(D,[A,'p1']),{cross:Array.from({length:B},(_,i)=>A-1-i)}), `${A} − ${B} = ${R} Teile bleiben`)});
+    out.push({mx:M(F(A,D),op,F(B,D),'=',F(`${A} ${op} ${B}`,D),'=',F(R,D)), why:`Zähler ${sg>0?'addieren':'subtrahieren'}. Der Nenner ${D} bleibt.`});
+    return out;
+  };
+  return {mode:'frac', target:[R,D], need:'equiv', prompt:'Rechne aus:', pic: pic ? showPic() : '',
+    q: M(F(a,d1),op,F(b,d2),'=',IN),
+    hint: same ? `Der Nenner bleibt ${D}. Rechne nur oben: ${a} ${op} ${b}.` : `Die Nenner sind verschieden. Erweitere zuerst, sodass unten bei beiden ${D} steht.`,
+    help };
+}
+
+/* ================= Bereiche und Generatoren ================= */
+const AREAS = {
+  erkennen:{name:'Bruch erkennen', ex:M(F(3,4)), s:['Bild lesen','Ausmalen'],
+    gen(st){ const d=pick([2,3,4,5,6,8,10]), n=rnd(1,d-1), sh=pick(['bar','pie']); return st===1 ? T.read(n,d,sh) : T.color(n,d,sh) }},
+  erweitern:{name:'Erweitern', ex:M(F(1,2),'=',F(2,4)), s:['Mit Bild','Ohne Bild'],
+    gen(st){ if(st===1){ const d=pick([2,3,4,5,6]), k=d<=3?pick([2,3,4]):2, n=rnd(1,d-1); return T.expNum(n,d,k,true) }
+             const d=rnd(2,6), n=rnd(1,d-1), k=rnd(2,5); return Math.random()<.5 ? T.expNum(n,d,k,false) : T.expFree(n,d,k) }},
+  kuerzen:{name:'Kürzen', ex:M(F(4,8),'=',F(1,2)), s:['Mit Bild','Ganz kürzen'],
+    gen(st){ let a,b; do{ b=rnd(2,5); a=rnd(1,b-1) } while(gcd(a,b)!==1);
+             if(st===1){ const k=b<=3?pick([2,3]):2; return T.redNum(a,b,k,true) }
+             return T.redFull(a,b,rnd(2,5)) }},
+  plus:{name:'Plus', ex:M(F(1,5),'+',F(2,5)), s:['Gleicher Nenner','Verschiedene Nenner'],
+    gen(st){ if(st===1){ const d=rnd(3,10), a=rnd(1,d-2), b=rnd(1,d-a); return T.add(a,d,b,d,true) }
+             const d1=pick([2,3,4,5]), k=pick([2,3]), d2=d1*k, a=rnd(1,d1-1), b=rnd(1,d2-1);
+             return Math.random()<.5 ? T.add(a,d1,b,d2,false) : T.add(b,d2,a,d1,false) }},
+  minus:{name:'Minus', ex:M(F(5,6),'−',F(2,6)), s:['Gleicher Nenner','Verschiedene Nenner'],
+    gen(st){ if(st===1){ const d=rnd(3,10), a=rnd(2,d), b=rnd(1,a-1); return T.sub(a,d,b,d,true) }
+             for(let i=0;i<30;i++){ const d1=pick([2,3,4,5]), k=pick([2,3]), d2=d1*k, a=rnd(1,d1-1), b=rnd(1,d2-1);
+               if(a*k>b) return T.sub(a,d1,b,d2,false); if(b>a*k) return T.sub(b,d2,a,d1,false) }
+             return T.sub(1,2,1,4,false) }},
+  mal:{name:'Mal', ex:M(3,'·',F(1,4)), s:['Zahl · Bruch','Bruch · Bruch'],
+    gen(st){ if(st===1){ const d=rnd(3,8), k=rnd(2,4), n=rnd(1,Math.max(1,Math.floor(d/k))); return T.mulInt(k,n,d,true) }
+             const d1=rnd(2,5), d2=rnd(2,5); return T.mulFrac(rnd(1,d1-1),d1,rnd(1,d2-1),d2,true) }},
+  geteilt:{name:'Geteilt', ex:M(F(4,5),':',2), s:['Bruch : Zahl','Bruch : Bruch'],
+    gen(st){ if(st===1){ const k=pick([2,3]), d=rnd(k+2,10), q=rnd(1,Math.floor((d-1)/k)); return T.divInt(q*k,d,k,true) }
+             const d1=rnd(2,6), d2=rnd(2,6); return T.divFrac(rnd(1,d1-1),d1,rnd(1,d2-1),d2) }}
+};
+const AREA_KEYS = Object.keys(AREAS);
+const keyOf = (a,s) => a+s;
+const cntOf = k => save.cnt[k]||0;
+const areaDone = a => [1,2].filter(s=>cntOf(keyOf(a,s))>=SICHER).length;
+const allDone = () => AREA_KEYS.reduce((x,a)=>x+areaDone(a),0);
+
+/* ================= Lernpfad ================= */
+const CHAPTERS = [
+ {title:'Was ist ein Bruch?', short:'Zähler und Nenner', html:()=>`
+   <p>Eine Pizza wird in <b>4 gleich große Stücke</b> geschnitten. Du nimmst <b>1 Stück</b>.</p>
+   <div class="pics">${picBox(pieSVG(parts(4,[1,'p1'])), M(F(1,4),'ein Viertel'))}${picBox(pieSVG(parts(4,[3,'p1'])), M(F(3,4),'drei Viertel'))}</div>
+   <div class="rule">
+     <div class="two"><span class="fr"><span>3</span><span style="color:var(--muted)">4</span></span><span><b>Zähler (oben):</b> Wie viele Stücke hast du?</span>
+     <span class="fr"><span style="color:var(--muted)">3</span><span>4</span></span><span><b>Nenner (unten):</b> In wie viele Stücke ist alles geteilt?</span></div>
+   </div>
+   <div class="tip">Die Stücke müssen immer <b>gleich groß</b> sein. Namen: ${F(1,2)} ein Halb, ${F(1,3)} ein Drittel, ${F(1,4)} ein Viertel, ${F(1,5)} ein Fünftel.</div>`,
+  examples:[{pic:picBox(barSVG(parts(5,[2,'p1']))), mx:M(F(2,5)), why:'5 Teile insgesamt, 2 sind gefärbt: zwei Fünftel'}],
+  tasks:()=>[T.read(1,2,'pie'),T.read(3,4,'pie'),T.read(2,5,'bar'),T.read(5,8,'bar')]},
+ {title:'Brüche ausmalen', short:'Selbst einen Bruch zeigen', html:()=>`
+   <p>Jetzt machst du es umgekehrt: Du siehst einen Bruch und malst ihn aus.</p>
+   <div class="rule"><span>Bei ${F(2,3)} ist das Bild in <b>3 Teile</b> geteilt. Du malst <b>2 Teile</b> aus.</span></div>
+   ${picBox(barSVG(parts(3,[2,'p1'])), M(F(2,3)))}
+   <div class="tip">Welche Teile du ausmalst, ist egal. Wichtig ist nur, wie viele.</div>`,
+  examples:[],
+  tasks:()=>[T.color(1,2,'pie'),T.color(3,4,'bar'),T.color(2,3,'pie'),T.color(4,6,'bar')]},
+ {title:'Erweitern', short:'Gleich viel, mehr Stücke', html:()=>`
+   <p>Schneide jedes Stück noch einmal durch. Dann hast du <b>doppelt so viele Stücke</b>. Aber du hast <b>gleich viel Pizza</b>.</p>
+   <div class="pics">${picBox(barSVG(parts(2,[1,'p1'])), M(F(1,2)))}${picBox(barSVG(parts(4,[2,'p1'])), M(F(2,4)))}</div>
+   <div class="rule"><span class="label">Regel</span><span>Nimm Zähler <b>und</b> Nenner mit derselben Zahl mal.</span>${M(F(1,2),'=',F('1 · 2','2 · 2'),'=',F(2,4))}</div>`,
+  examples:[{mx:M(F(2,3),'=',F('2 · 3','3 · 3'),'=',F(6,9)), why:'Mit 3 erweitert: oben mal 3, unten mal 3'}],
+  tasks:()=>[T.expNum(1,2,2,true),T.expNum(1,3,2,true),T.expNum(2,3,2,true),T.expNum(3,4,2,true)]},
+ {title:'Kürzen', short:'Gleich viel, weniger Stücke', html:()=>`
+   <p>Kürzen ist das Gegenteil von Erweitern. Du fasst Stücke zusammen. Es sind <b>weniger Stücke</b>, aber <b>gleich viel</b>.</p>
+   <div class="pics">${picBox(barSVG(parts(8,[4,'p1'])), M(F(4,8)))}${picBox(barSVG(parts(2,[1,'p1'])), M(F(1,2)))}</div>
+   <div class="rule"><span class="label">Regel</span><span>Teile Zähler <b>und</b> Nenner durch dieselbe Zahl.</span>${M(F(4,8),'=',F('4 : 4','8 : 4'),'=',F(1,2))}</div>
+   <div class="tip">Kürzen geht nur, wenn sich <b>beide</b> Zahlen glatt teilen lassen.</div>`,
+  examples:[{mx:M(F(6,9),'=',F('6 : 3','9 : 3'),'=',F(2,3)), why:'6 und 9 kann man beide durch 3 teilen'}],
+  tasks:()=>[T.redNum(1,2,2,true),T.redNum(1,3,2,true),T.redNum(3,4,2,true)]},
+ {title:'Plus rechnen', short:'Gleiche Nenner', html:()=>`
+   <p>Haben beide Brüche denselben Nenner, ist Plus ganz leicht: Du zählst einfach die Stücke zusammen.</p>
+   ${picBox(barSVG(parts(5,[1,'p1'],[2,'p2'])), M(F(1,5),'+',F(2,5),'=',F(3,5)))}
+   <div class="rule"><span class="label">Regel</span><span>Zähler plus Zähler. Der Nenner <b>bleibt gleich</b>.</span></div>
+   <div class="tip">Achtung: Die Nenner werden <b>nicht</b> addiert! ${F(1,5)} + ${F(2,5)} ist nicht ${F(3,10)}.</div>`,
+  examples:[{mx:M(F(2,7),'+',F(3,7),'=',F('2 + 3',7),'=',F(5,7)), why:'Unten bleibt die 7'}],
+  tasks:()=>[T.add(1,5,2,5,true),T.add(2,6,3,6,true),T.add(3,8,4,8,true)]},
+ {title:'Minus rechnen', short:'Gleiche Nenner', html:()=>`
+   <p>Bei Minus nimmst du Stücke weg. Auch hier bleibt der Nenner gleich.</p>
+   ${picBox(barSVG(parts(6,[5,'p1']),{cross:[4,3]}), M(F(5,6),'−',F(2,6),'=',F(3,6)))}
+   <div class="rule"><span class="label">Regel</span><span>Zähler minus Zähler. Der Nenner <b>bleibt gleich</b>.</span></div>`,
+  examples:[{mx:M(F(7,8),'−',F(3,8),'=',F('7 − 3',8),'=',F(4,8)), why:'Unten bleibt die 8'}],
+  tasks:()=>[T.sub(4,5,1,5,true),T.sub(5,7,3,7,true),T.sub(7,8,2,8,true)]},
+ {title:'Verschiedene Nenner', short:'Erst erweitern', html:()=>`
+   <p>Bei ${F(1,2)} + ${F(1,4)} sind die Stücke verschieden groß. So kann man sie nicht zusammenzählen.</p>
+   <div class="pics">${picBox(barSVG(parts(2,[1,'p1'])), M(F(1,2)))}${picBox(barSVG(parts(4,[1,'p2'])), M(F(1,4)))}</div>
+   <p>Deshalb machst du die Stücke zuerst gleich groß: ${F(1,2)} ist dasselbe wie ${F(2,4)}.</p>
+   ${picBox(barSVG(parts(4,[2,'p1'],[1,'p2'])), M(F(2,4),'+',F(1,4),'=',F(3,4)))}
+   <div class="rule"><span class="label">Regel</span><span><b>1.</b> Erweitern, bis die Nenner gleich sind.</span><span><b>2.</b> Dann Zähler rechnen, Nenner bleibt.</span></div>`,
+  examples:[{mx:M(F(1,3),'+',F(1,6),'=',F(2,6),'+',F(1,6),'=',F(3,6)), why:'1/3 mit 2 erweitert ergibt 2/6'}],
+  tasks:()=>[T.add(1,2,1,4,true),T.add(1,3,1,6,true),T.sub(1,2,1,4,true)]},
+ {title:'Mal rechnen', short:'Zahl · Bruch und Bruch · Bruch', html:()=>`
+   <p><b>Zahl mal Bruch:</b> ${M(3,'·',F(1,4))} heißt: 3-mal ein Viertel.</p>
+   <div class="pics">${[1,2,3].map(()=>picBox(barSVG(parts(4,[1,'p1']),{w:150}))).join('')}</div>
+   <div class="rule"><span>Nur der Zähler wird malgenommen. Der Nenner bleibt.</span>${M(3,'·',F(1,4),'=',F('3 · 1',4),'=',F(3,4))}</div>
+   <p><b>Bruch mal Bruch:</b> ${M(F(1,2),'·',F(1,3))} heißt: die Hälfte von einem Drittel.</p>
+   ${picBox(gridSVG(1,2,1,3), 'Das lila Feld ist 1 von 6 Feldern')}
+   <div class="rule"><span>Oben mal oben, unten mal unten.</span>${M(F(1,2),'·',F(1,3),'=',F('1 · 1','2 · 3'),'=',F(1,6))}</div>`,
+  examples:[{mx:M(F(2,3),'·',F(4,5),'=',F('2 · 4','3 · 5'),'=',F(8,15)), why:'Zähler mal Zähler, Nenner mal Nenner'}],
+  tasks:()=>[T.mulInt(3,1,5,true),T.mulInt(2,2,7,true),T.mulFrac(1,2,1,4,true),T.mulFrac(2,3,1,2,true)]},
+ {title:'Geteilt rechnen', short:'Verteilen und Kehrwert', html:()=>`
+   <p><b>Bruch geteilt durch Zahl:</b> ${M(F(4,5),':',2)} heißt: 4 Fünftel werden auf 2 Kinder verteilt.</p>
+   ${picBox(barSVG(parts(5,[2,'p1'],[2,'p2'])), 'Jedes Kind bekommt 2 Stücke')}
+   <div class="rule"><span>Teile den Zähler. Der Nenner bleibt.</span>${M(F(4,5),':',2,'=',F('4 : 2',5),'=',F(2,5))}</div>
+   <p><b>Bruch geteilt durch Bruch:</b> Dafür gibt es einen Trick.</p>
+   <div class="rule"><span class="label">Regel</span><span>Dreh den zweiten Bruch um und nimm mal.</span>${M(F(1,2),':',F(1,4),'=',F(1,2),'·',F(4,1),'=',F(4,2),'=',2)}</div>
+   <div class="tip">Den umgedrehten Bruch nennt man <b>Kehrwert</b>. Der Kehrwert von ${F(3,5)} ist ${F(5,3)}.</div>`,
+  examples:[{mx:M(F(2,3),':',F(1,3),'=',F(2,3),'·',F(3,1),'=',F(6,3)), why:'1/3 umgedreht ist 3/1. Gekürzt ist 6/3 = 2'}],
+  tasks:()=>[T.divInt(4,5,2,true),T.divInt(6,7,3,true),T.divFrac(1,2,1,4),T.divFrac(2,3,1,3)]}
+];
+const PATH = [...CHAPTERS.map((_,i)=>({ch:i})), {practice:true, title:'Üben', sub:'7 Bereiche, je 2 Stufen'}, {test:true, title:'Minutentest', sub:'So viele Aufgaben wie möglich in 60 Sekunden'}];
+
+/* ================= Startseite ================= */
+function home(){
+  const tab=save.tab;
+  let body='';
+  if(tab==='learn'){
+    let marked=false;
+    body=`<section class="panel">
+      <div><span class="label">Dein Lernpfad</span><p class="note">Geh die Schritte der Reihe nach durch. Jedes Kapitel erklärt dir etwas mit Bildern. Danach probierst du es selbst aus.</p></div>
+      <div class="path">${PATH.map((p,i)=>{
+        let done,title,sub,num,cls='';
+        if(p.ch!==undefined){ done=!!save.done[p.ch]; title=CHAPTERS[p.ch].title; sub=`Kapitel ${p.ch+1} · ${CHAPTERS[p.ch].short}`; num=p.ch+1 }
+        else if(p.practice){ done=allDone()===AREA_KEYS.length*2; title=p.title; sub=`${allDone()} von ${AREA_KEYS.length*2} Stufen geschafft`; num='✎'; cls='practice' }
+        else { done=Object.values(save.best).some(v=>v>0); title=p.title; sub=p.sub; num='⏱'; cls='practice' }
+        const isNext=!done && !marked; if(isNext) marked=true;
+        return `<button class="step ${cls} ${done?'done':''} ${isNext?'next':''}" data-path="${i}"><span class="dot">${done?'✓':num}</span><span class="txt"><b>${esc(title)}</b><small>${esc(sub)}${isNext?' · als Nächstes':''}</small></span><span class="go">›</span></button>`;
+      }).join('')}</div></section>`;
+  } else {
+    const a=save.area, A=AREAS[a], st=save.stage[a]||1, k=keyOf(a,st);
+    body=`<section class="panel">
+      <span class="label">Was willst du üben?</span>
+      <div class="areas">${AREA_KEYS.map(x=>`<button class="area" data-area="${x}" aria-pressed="${x===a}"><b>${AREAS[x].name}</b><span class="ex">${AREAS[x].ex}</span><small>${areaDone(x)===2?'✓ geschafft':`${areaDone(x)} von 2 Stufen`}</small></button>`).join('')}</div>
+      <span class="label">Stufe</span>
+      <div class="stages">${[1,2].map(s=>{ const c=Math.min(cntOf(keyOf(a,s)),SICHER); return `<button class="chip ${c>=SICHER?'ok':''}" data-st="${s}" aria-pressed="${st===s}"><b>Stufe ${s}: ${A.s[s-1]}</b><small>${c>=SICHER?'✓ geschafft':`${c} von ${SICHER} richtig`}</small><span class="bar"><i style="width:${c/SICHER*100}%"></i></span></button>` }).join('')}</div>
+      <p class="note">Eine Stufe ist geschafft, wenn du ${SICHER} Aufgaben ohne Tipp richtig gelöst hast.</p>
+      <span class="label">Modus</span>
+      <div class="modes">
+        <button class="mode" data-m="train" aria-pressed="${save.mode==='train'}"><b>✎ Üben</b><small>10 Aufgaben ohne Zeitdruck. Bei Fehlern siehst du ein Bild und den Rechenweg.</small></button>
+        <button class="mode" data-m="sprint" aria-pressed="${save.mode==='sprint'}"><b>⏱ Minutentest</b><small>60 Sekunden. Rekord: ${save.best[k]||0}</small></button>
+      </div>
+      <button class="btn" id="go">Los geht's: ${A.name}, Stufe ${st}</button></section>`;
+  }
+  app.innerHTML=`
+    <header><h1>Bruch-<span>Profi</span></h1><p class="sub">Brüche verstehen und rechnen</p></header>
+    <nav class="tabs" aria-label="Bereich">
+      <button class="tab" data-tab="learn" aria-pressed="${tab==='learn'}"><b>Lernen</b>${Object.keys(save.done).length} von ${CHAPTERS.length} Kapiteln</button>
+      <button class="tab" data-tab="practice" aria-pressed="${tab==='practice'}"><b>Üben</b>${allDone()} von ${AREA_KEYS.length*2} Stufen</button>
+    </nav>
+    ${body}
+    <section class="panel">
+      <label class="label" for="name">Dein Vorname</label>
+      <input class="name" id="name" maxlength="24" autocomplete="off" placeholder="z. B. Emre" value="${esc(save.name)}">
+      <button class="btn ghost" id="proof">Mein Nachweis anzeigen</button>
+      <p class="note">Dein Fortschritt wird auf diesem Gerät gespeichert.</p>
+    </section>`;
+  app.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ save.tab=b.dataset.tab; persist(); home() });
+  app.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{
+    const p=PATH[+b.dataset.path];
+    if(p.ch!==undefined) return chapter(p.ch);
+    save.tab='practice'; save.mode = p.test ? 'sprint' : 'train'; persist(); home();
+  });
+  app.querySelectorAll('[data-area]').forEach(b=>b.onclick=()=>{ save.area=b.dataset.area; persist(); home() });
+  app.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ save.stage[save.area]=+b.dataset.st; persist(); home() });
+  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ save.mode=b.dataset.m; persist(); home() });
+  const go=$('#go'); if(go) go.onclick=()=>startGame({type:save.mode, area:save.area, stage:save.stage[save.area]||1});
+  $('#name').oninput=e=>{ save.name=e.target.value.trim(); persist() };
+  $('#proof').onclick=proof;
+  window.scrollTo(0,0);
+}
+
+/* ================= Kapitel ================= */
+function chapter(n){
+  const c=CHAPTERS[n];
+  app.innerHTML=`
+    <div class="hud"><button class="btn ghost small" id="back">‹ Übersicht</button><span class="label">Kapitel ${n+1} von ${CHAPTERS.length}</span></div>
+    <article class="chapter">
+      <h2>${c.title}</h2>
+      ${c.html()}
+      ${c.examples.length?`<h3>Beispiel</h3>${c.examples.map(e=>`<div class="example">${e.pic||''}${e.mx||''}${e.why?`<span class="note">${e.why}</span>`:''}</div>`).join('')}`:''}
+      <div class="panel"><h3>Jetzt du!</h3><p>Löse ${c.tasks().length} Aufgaben. Wenn etwas nicht klappt, hilft dir ein Bild.</p>
+      <button class="btn" id="try">${save.done[n]?'Nochmal üben':'Aufgaben starten'}</button></div>
+    </article>`;
+  $('#back').onclick=home;
+  $('#try').onclick=()=>startGame({type:'tut', chapter:n, list:c.tasks()});
+  window.scrollTo(0,0);
+}
+
+/* ================= Spiel ================= */
+let G=null, tick=null, cd=null;
+const KEYS=['7','8','9','del','4','5','6','sw','1','2','3','0','ok'];
+function startGame(cfg){
+  G=Object.assign({score:0, correct:0, wrong:0, streak:0, count:0, misses:[], total:60, left:60, last:''}, cfg);
+  G.max = cfg.type==='tut' ? cfg.list.length : cfg.type==='train' ? 10 : Infinity;
+  app.innerHTML=`
+    <div class="hud"><button class="btn ghost small" id="quit" aria-label="Beenden">✕</button><span class="streak" id="streak"></span><span class="big" id="score">0</span></div>
+    ${G.type==='sprint'?`<div class="track" aria-label="Zeit"><i id="tbar" style="width:100%"></i></div>`:`<div class="note" id="prog"></div>`}
+    <div class="card" id="card">
+      <div class="prompt" id="prompt"></div>
+      <div id="pic" style="width:100%"></div>
+      <div class="task" id="q"></div>
+      <div class="fb" id="fb" role="status"></div>
+      ${G.type!=='sprint'?'<button class="hintbtn" id="hint">💡 Tipp</button>':''}
+      <div id="help" style="width:100%"></div>
+    </div>
+    <div class="pad" id="pad"></div>`;
+  $('#quit').onclick=()=>{ stopGame(); const g=G; G=null; g.type==='tut' ? chapter(g.chapter) : home() };
+  const hb=$('#hint'); if(hb) hb.onclick=showHint;
+  window.scrollTo(0,0);
+  if(G.type!=='sprint'){ next(); return }
+  G.locked=true; let n=3;
+  $('#q').innerHTML=`<span class="count">3</span>`; $('#fb').textContent='Mach dich bereit …';
+  const step=()=>{ if(!G) return; n--; if(n>0){ $('#q').innerHTML=`<span class="count">${n}</span>`; cd=setTimeout(step,800); return } next(); runClock() };
+  cd=setTimeout(step,800);
+}
+function stopGame(){ clearInterval(tick); clearTimeout(cd) }
+function runClock(){
+  const t0=performance.now();
+  tick=setInterval(()=>{ if(!G) return; G.left=Math.max(0,G.total-(performance.now()-t0)/1000); $('#tbar').style.width=(G.left/G.total*100)+'%'; if(G.left<=0) end() },100);
+}
+function renderPad(){
+  const t=G.cur;
+  if(t.mode==='color'){ $('#pad').innerHTML=`<button class="del" data-k="clear" style="grid-column:span 2">Alles löschen</button><button class="ok" data-k="ok" style="grid-column:span 2">OK</button>` }
+  else $('#pad').innerHTML=KEYS.map(k=> k==='sw' && t.mode==='num' ? '<span></span>' : `<button data-k="${k}" class="${k==='del'?'del':k==='ok'?'ok':k==='sw'?'sw':''}" ${k==='sw'?'id="swkey"':''} aria-label="${k==='del'?'Löschen':k==='sw'?'Zwischen Zähler und Nenner wechseln':k}">${k==='del'?'⌫':k==='ok'?'OK':k==='sw'?'':k}</button>`).join('');
+  app.querySelectorAll('#pad button').forEach(b=>b.onclick=()=>key(b.dataset.k));
+}
+function next(){
+  let t;
+  if(G.type==='tut') t=G.list[G.count];
+  else { let tries=0; do{ t=AREAS[G.area].gen(G.stage); tries++ } while(t.q+t.prompt===G.last && tries<8) }
+  G.cur=t; G.last=t.q+t.prompt; G.n=''; G.d=''; G.slot='n'; G.colored=new Set(); G.locked=false; G.count++;
+  $('#prompt').innerHTML=t.prompt; $('#pic').innerHTML=t.pic||''; $('#fb').textContent=''; $('#help').innerHTML=''; $('#card').className='card';
+  if(t.mode==='color'){
+    $('#pic').innerHTML=picBox(shape(t.sh, parts(t.d), {tap:true}));
+    $('#pic').querySelectorAll('.pc').forEach(el=>el.addEventListener('click',()=>{
+      if(!G || G.locked) return;
+      const i=+el.dataset.i; G.colored.has(i) ? G.colored.delete(i) : G.colored.add(i);
+      el.classList.toggle('p1', G.colored.has(i)); el.classList.toggle('p0', !G.colored.has(i));
+      if($('#card').classList.contains('almost')){ $('#card').className='card'; $('#fb').textContent='' }
+    }));
+  }
+  renderPad(); renderQ();
+  const hb=$('#hint'); if(hb) hb.hidden=false;
+  if(G.type!=='sprint') $('#prog').textContent = G.type==='tut' ? `Kapitel ${G.chapter+1} · Aufgabe ${G.count} von ${G.max}` : `${AREAS[G.area].name} · Stufe ${G.stage} · Aufgabe ${G.count} von ${G.max}`;
+}
+function renderQ(){
+  const t=G.cur;
+  const slotN=`<span class="slot n ${G.slot==='n'?'on':''}" data-slot="n">${G.n||'&nbsp;'}</span>`;
+  const slotD=`<span class="slot d ${G.slot==='d'?'on':''}" data-slot="d">${G.d||'&nbsp;'}</span>`;
+  const input = t.mode==='num' ? `<span class="slot n on" data-slot="n">${G.n||'&nbsp;'}</span>` : `<span class="fr in">${slotN}${slotD}</span>`;
+  $('#q').innerHTML = t.mode==='color' ? '' : t.q.replace(IN, input);
+  $('#q').querySelectorAll('[data-slot]').forEach(s=>s.onclick=()=>{ if(t.mode==='frac'){ G.slot=s.dataset.slot; renderQ() } });
+  const sw=$('#swkey'); if(sw) sw.textContent = G.slot==='n' ? 'Nenner ↓' : 'Zähler ↑';
+}
+function key(k){
+  if(!G || G.locked) return;
+  const t=G.cur;
+  if(k==='ok') return submit();
+  if(k==='clear'){ G.colored.clear(); $('#pic').querySelectorAll('.pc').forEach(el=>{ el.classList.remove('p1'); el.classList.add('p0') }); return }
+  if(t.mode==='color') return;
+  if(k==='sw'){ if(t.mode==='frac'){ G.slot = G.slot==='n'?'d':'n' } }
+  else if(k==='del'){ if(G[G.slot]) G[G.slot]=G[G.slot].slice(0,-1); else if(G.slot==='d' && t.mode==='frac') G.slot='n' }
+  else if(G[G.slot].length<3) G[G.slot]+=k;
+  if($('#card').classList.contains('almost')){ $('#card').className='card'; $('#fb').textContent='' }
+  renderQ();
+}
+function check(t){
+  if(t.mode==='color'){
+    if(!G.colored.size) return {state:'almost', msg:'Tippe auf die Teile, um sie auszumalen.'};
+    return G.colored.size===t.n ? {state:'ok'} : {state:'wrong'};
+  }
+  if(!G.n) return {state:'almost', msg: t.mode==='num' ? 'Trag die Zahl oben ein.' : 'Trag oben den Zähler ein.'};
+  if(t.mode==='num') return +G.n===t.num ? {state:'ok'} : {state:'wrong'};
+  const [tn,td]=t.target, n=+G.n;
+  if(G.d===''){
+    if(tn%td===0 && n===tn/td) return {state:'ok'};
+    return {state:'almost', msg:'Trag unten auch den Nenner ein. Tippe dafür auf „Nenner ↓“.'};
+  }
+  const d=+G.d;
+  if(d===0) return {state:'almost', msg:'Der Nenner darf nicht 0 sein.'};
+  if(n*td!==tn*d) return {state:'wrong'};
+  if(t.need==='exact' && !(n===tn && d===td)) return {state:'almost', msg:t.exactMsg};
+  if(t.need==='reduced' && gcd(n,d)>1) return {state:'almost', msg:'Richtig, aber du kannst noch weiter kürzen.'};
+  if(gcd(n,d)>1 && d!==1) return {state:'ok', note:`Gekürzt: ${n/gcd(n,d)}/${d/gcd(n,d)}`};
+  return {state:'ok'};
+}
+function showHint(){
+  if(!G || !G.cur || G.cur.retry) return;
+  G.cur.hinted=true;
+  $('#help').innerHTML=`<div class="sol"><span class="label">Tipp</span><span>${G.cur.hint}</span></div>`;
+  $('#hint').hidden=true;
+}
+const helpHTML = t => `<div class="sol"><span class="label">So geht's</span>${t.help().map(h=>`${h.pic||''}${h.mx||''}${h.why?`<span class="why">${h.why}</span>`:''}`).join('')}</div>`;
+function submit(){
+  const t=G.cur, r=check(t);
+  if(r.state==='almost'){ $('#card').className='card almost'; $('#fb').textContent=r.msg; return }
+  G.locked=true;
+  if(r.state==='ok'){
+    $('#card').className='card ok';
+    if(t.retry){ $('#fb').textContent='Genau, jetzt stimmt es!'; return later(1200) }
+    G.correct++; G.streak++; save.solved=(save.solved||0)+1;
+    const pts = t.hinted ? 5 : 10+(G.streak>=3?5:0); G.score+=pts; popup('+'+pts);
+    if(G.type!=='tut' && !t.hinted){ const k=keyOf(G.area,G.stage), b=cntOf(k); save.cnt[k]=b+1; if(b+1===SICHER) toast(`${AREAS[G.area].name}, Stufe ${G.stage} geschafft ✓`) }
+    persist();
+    $('#fb').textContent = (t.hinted ? 'Richtig! Probier die nächste ohne Tipp.' : pick(['Richtig!','Super!','Stark!','Genau so!'])) + (r.note ? ` ${r.note}` : '');
+    return later(G.type==='sprint' ? 600 : (r.note?1600:1000));
+  }
+  G.wrong++; G.streak=0; G.misses.push(t);
+  $('#card').className='card no';
+  $('#help').innerHTML=helpHTML(t);
+  const hb=$('#hint'); if(hb) hb.hidden=true;
+  if(G.type==='sprint'){ $('#fb').textContent='Leider falsch.'; return later(3200) }
+  $('#fb').textContent = t.mode==='color' ? `Noch nicht. Du hast ${G.colored.size} Teile ausgemalt. Schau dir das Bild an und versuch es nochmal.` : 'Noch nicht. Schau dir die Hilfe an und tippe dann die Lösung ein.';
+  t.retry=true; G.n=''; G.d=''; G.slot='n'; G.locked=false;
+  if(t.mode==='color'){ G.colored.clear(); $('#pic').querySelectorAll('.pc').forEach(el=>{ el.classList.remove('p1'); el.classList.add('p0') }) }
+  renderQ(); updHud();
+}
+function updHud(){ $('#score').textContent=G.score; $('#streak').textContent = G.streak>=3 ? `🔥 ${G.streak} in Folge` : '' }
+function later(ms){
+  updHud();
+  setTimeout(()=>{ if(!G) return; if(G.type==='sprint'){ if(G.left>0) next(); return } if(G.count>=G.max) return end(); next() }, ms);
+}
+function popup(t){ const p=document.createElement('div'); p.className='pop'; p.textContent=t; document.body.appendChild(p); setTimeout(()=>p.remove(),800) }
+function toast(t){ const d=document.createElement('div'); d.className='toast'; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2600) }
+document.addEventListener('keydown',e=>{
+  if(!G || !$('#card') || e.target.tagName==='INPUT') return;
+  const k=e.key;
+  if(/^[0-9]$/.test(k)) key(k);
+  else if(k==='Backspace'){ key('del'); e.preventDefault() }
+  else if(k==='Enter') key('ok');
+  else if(['ArrowDown','ArrowUp','Tab','/'].includes(k)){ key('sw'); e.preventDefault() }
+});
+
+/* ================= Ergebnis ================= */
+function end(){
+  stopGame();
+  const g=G; G=null;
+  const total=g.correct+g.wrong, q=total?g.correct/total:0, stars=(q>=.6?1:0)+(q>=.8?1:0)+(q>=.95?1:0);
+  let rec=false;
+  if(g.type==='sprint'){ const k=keyOf(g.area,g.stage); if(g.correct>(save.best[k]||0)){ save.best[k]=g.correct; rec=true } }
+  if(g.type==='tut') save.done[g.chapter]=true;
+  save.pts=(save.pts||0)+g.score; persist();
+  const title = g.type==='tut' ? `Kapitel ${g.chapter+1}: ${CHAPTERS[g.chapter].title}` : `${AREAS[g.area].name}, Stufe ${g.stage} · ${g.type==='sprint'?'Minutentest':'Üben'}`;
+  const nextBtn = g.type==='tut' ? (g.chapter+1<CHAPTERS.length ? `<button class="btn" id="nextch">Weiter zu Kapitel ${g.chapter+2}</button>` : `<button class="btn" id="topr">Jetzt üben</button>`) : `<button class="btn" id="again">Nochmal</button>`;
+  app.innerHTML=`
+    <section class="cert">
+      <span class="label">${g.type==='tut'?'Kapitel geschafft':'Ergebnis'}</span>
+      <h2>${esc(title)}</h2>
+      <div class="who">${esc(save.name||'Ohne Namen')}</div>
+      <div>hat <b>${g.correct} von ${total}</b> Aufgaben auf Anhieb richtig gelöst${g.type==='sprint'?' – in 60 Sekunden':''}.</div>
+      <div class="stars" aria-label="${stars} von 3 Sternen">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>
+      <div class="note">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}, ${new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr</div>
+      ${rec?'<div><b style="color:var(--gold)">Neuer Rekord!</b></div>':''}
+    </section>
+    ${g.misses.length?`<section class="panel"><span class="label">Diese Aufgaben solltest du dir nochmal ansehen</span><div class="list">${g.misses.map(t=>`<div>${t.mode==='color'?M('Ausmalen:',F(t.n,t.d)):t.q.replace(INnum(t.target[1]), F(t.target[0],t.target[1])).replace(IN, F(t.target[0],t.target[1]))}</div>`).join('')}</div></section>`:''}
+    ${nextBtn}
+    <button class="btn ghost" id="back">Zur Übersicht</button>`;
+  $('#back').onclick=home;
+  const a=$('#again'); if(a) a.onclick=()=>startGame({type:g.type, area:g.area, stage:g.stage});
+  const nc=$('#nextch'); if(nc) nc.onclick=()=>chapter(g.chapter+1);
+  const tp=$('#topr'); if(tp) tp.onclick=()=>{ save.tab='practice'; save.mode='train'; persist(); home() };
+  window.scrollTo(0,0);
+}
+
+/* ================= Nachweis ================= */
+function proof(){
+  const d=new Date();
+  app.innerHTML=`
+    <section class="cert">
+      <span class="label">Nachweis · Bruch-Profi</span>
+      <div class="who">${esc(save.name||'Bitte Vornamen eintragen')}</div>
+      <div class="note">Stand: ${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}, ${d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr</div>
+      <div class="stats"><div><span class="label">Kapitel</span><b>${Object.keys(save.done).length}/${CHAPTERS.length}</b></div><div><span class="label">Stufen</span><b>${allDone()}/${AREA_KEYS.length*2}</b></div><div><span class="label">Gelöst</span><b>${save.solved||0}</b></div></div>
+      <span class="label" style="margin-top:6px">Kapitel</span>
+      <div class="list">${CHAPTERS.map((c,i)=>`<div><span>${i+1}. ${c.title}</span><span class="${save.done[i]?'yes':'no'}">${save.done[i]?'✓':'–'}</span></div>`).join('')}</div>
+      <span class="label" style="margin-top:6px">Üben · Stufe 1 / Stufe 2 (richtig gelöst, Rekord)</span>
+      <div class="list">${AREA_KEYS.map(a=>`<div><span>${AREAS[a].name}</span><span>${[1,2].map(s=>{ const k=keyOf(a,s); return `<span class="${cntOf(k)>=SICHER?'yes':'no'}">${cntOf(k)}${cntOf(k)>=SICHER?' ✓':''} (${save.best[k]||0})</span>` }).join(' / ')}</span></div>`).join('')}</div>
+    </section>
+    <p class="note">Mach einen Screenshot von diesem Nachweis und gib ihn deiner Lehrkraft.</p>
+    <button class="btn" id="back">Zurück</button>`;
+  $('#back').onclick=home;
+  window.scrollTo(0,0);
+}
+
+home();
+</script>
+</body>
+</html>
